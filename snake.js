@@ -1,7 +1,8 @@
 const canvas = document.getElementById("game-canvas");
 const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
 const MapSize = 20;
-let gridSize = canvas.height / MapSize;
+let gridSize = Math.floor(canvas.height / MapSize);
 
 function resizeCanvas() {
   if (window.innerHeight > window.innerWidth) {
@@ -11,7 +12,7 @@ function resizeCanvas() {
     canvas.width = window.innerHeight * 0.8;
     canvas.height = window.innerHeight * 0.8;
   }
-  gridSize = canvas.height / MapSize;
+  gridSize = Math.floor(canvas.height / MapSize);
 }
 resizeCanvas();
 
@@ -37,6 +38,7 @@ class Game {
     this.highScore = 0;
     this.playing = false;
     this.snakeGenerated = false;
+    this.gameEnded = false;
   }
   randomEmptySpot() {
     let attempts = 100;
@@ -155,28 +157,68 @@ class Game {
           console.log("collison Game Over");
           this.highScore = this.score;
           this.playing = false;
+          this.gameEnded = true;
         }
       } else {
         this.highScore = this.score;
         console.log("Out of bounds Game Over !");
         this.playing = false;
+        this.gameEnded = true;
       }
     }
   }
   drawScores() {
     this.ctx.fillStyle = "#d0d0d0";
     this.ctx.font = `${0.5 * gridSize}px serif`;
+    this.ctx.textAlign = "start";
     this.ctx.fillText(`Score : ${this.score}`, gridSize, gridSize);
+    this.ctx.textAlign = "end";
     this.ctx.fillText(
       `High Score : ${this.highScore}`,
-      16 * gridSize,
-      gridSize,
-      4 * gridSize
+      19 * gridSize,
+      gridSize
     );
+  }
+  drawEndScreen() {
+    this.ctx.fillStyle = "#d0d0d0";
+    this.ctx.font = `${0.5 * gridSize}px serif`;
+    this.ctx.textAlign = "center";
+    this.ctx.fillText(
+      ` Your Score : ${this.score}`,
+      10 * gridSize,
+      10 * gridSize
+    );
+    this.ctx.fillText(
+      `Press SPACE or Touch to Continue`,
+      10 * gridSize,
+      12 * gridSize
+    );
+  }
+  resetGame() {
+    this.map = Array(20)
+      .fill(0)
+      .map(() => Array(20).fill(0));
+    this.snakeLocationArray = [];
+    this.snakeHeadLocation = null;
+    this.noFood = true;
+    this.snakeGenerated = false;
+    this.score = 0;
+    this.lastKey = "";
   }
 }
 const game = new Game(ctx);
 function animate() {
+  if (game.gameEnded == false && game.playing == false) {
+    game.clearMap();
+    ctx.fillStyle = "#d0d0d0";
+    ctx.font = `${0.5 * gridSize}px serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(
+      `Press SPACE or Touch to Continue`,
+      10 * gridSize,
+      12 * gridSize
+    );
+  }
   if (game.playing) {
     game.clearMap();
     if (!game.snakeGenerated) {
@@ -187,6 +229,10 @@ function animate() {
     game.drawFood();
     game.drawSnake();
     game.drawScores();
+
+    if (game.gameEnded) {
+      game.drawEndScreen();
+    }
 
     if (game.noFood) {
       game.generateFood();
@@ -228,25 +274,30 @@ window.addEventListener("keyup", (e) => {
 });
 window.addEventListener("keydown", (e) => {
   if (e.key == " ") {
-    game.playing = true;
+    if (!game.playing) {
+      game.playing = true;
+      game.gameEnded = false;
+      game.resetGame();
+    }
   }
 });
 
 window.addEventListener(
   "touchmove",
   (e) => {
-    e.preventDefault(); // Prevent scrolling on touchmove
+    e.preventDefault();
   },
   { passive: false }
 );
 
-window.addEventListener("touchstart", () => {
-  game.playing = true;
-});
-
 let touchstartX = 0;
 let touchstartY = 0;
 window.addEventListener("touchstart", (e) => {
+  if (!game.playing) {
+    game.playing = true;
+    game.gameEnded = false;
+    game.resetGame();
+  }
   const touch = e.touches[0];
   touchstartX = touch.clientX;
   touchstartY = touch.clientY;
