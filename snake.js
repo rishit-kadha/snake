@@ -6,11 +6,11 @@ let gridSize = Math.floor(canvas.height / MapSize);
 
 function resizeCanvas() {
   if (window.innerHeight > window.innerWidth) {
-    canvas.width = window.innerWidth * 0.8;
-    canvas.height = window.innerWidth * 0.8;
+    canvas.width = Math.floor((window.innerWidth * 0.8) / MapSize) * MapSize;
+    canvas.height = Math.floor((window.innerWidth * 0.8) / MapSize) * MapSize;
   } else {
-    canvas.width = window.innerHeight * 0.8;
-    canvas.height = window.innerHeight * 0.8;
+    canvas.width = Math.floor((window.innerHeight * 0.8) / MapSize) * MapSize;
+    canvas.height = Math.floor((window.innerHeight * 0.8) / MapSize) * MapSize;
   }
   gridSize = Math.floor(canvas.height / MapSize);
 }
@@ -238,9 +238,10 @@ function animate() {
       game.generateFood();
     }
   }
+  const dynamicSpeed = Math.max(50, game.speed - game.score * 10);
+  setTimeout(animate, dynamicSpeed);
 }
-
-setInterval(animate, game.speed);
+animate();
 
 //EventListeners
 window.addEventListener("resize", () => {
