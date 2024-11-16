@@ -33,6 +33,10 @@ class Game {
     };
     this.lastKey = "";
     this.speed = 500;
+    this.score = 0;
+    this.highScore = 0;
+    this.playing = false;
+    this.snakeGenerated = false;
   }
   randomEmptySpot() {
     let attempts = 100;
@@ -97,7 +101,7 @@ class Game {
     }
   }
   drawSnake() {
-    this.ctx.fillStyle = "blue";
+    this.ctx.fillStyle = "#81b622";
     let list = [];
     this.snakeLocationArray.forEach((e) => {
       if (this.map[e.x][e.y] > 0) {
@@ -106,54 +110,6 @@ class Game {
       }
     });
     this.snakeLocationArray = list;
-  }
-  updateState() {
-    let dx = 0,
-      dy = 0;
-    if (this.keys.w.pressed && this.lastKey == "w") {
-      console.log("W");
-      dx = 0;
-      dy = -1;
-    } else if (this.keys.a.pressed && this.lastKey == "a") {
-      console.log("A");
-      dx = -1;
-      dy = 0;
-    } else if (this.keys.s.pressed && this.lastKey == "s") {
-      console.log("S");
-      dx = 0;
-      dy = 1;
-    } else if (this.keys.d.pressed && this.lastKey == "d") {
-      console.log("D");
-      dx = 1;
-      dy = 0;
-    }
-
-    if (dx !== 0 || dy !== 0) {
-      const headx = game.snakeHeadLocation.x;
-      const heady = game.snakeHeadLocation.y;
-      const nextx = headx + dx;
-      const nexty = heady + dy;
-
-      if (nextx >= 0 && nextx < MapSize && nexty >= 0 && nexty < MapSize) {
-        if (game.map[nextx][nexty] == -1) {
-          game.map[nextx][nexty] = 1;
-          game.snakeHeadLocation = { x: nextx, y: nexty };
-          game.snakeLocationArray.unshift({ x: nextx, y: nexty });
-          game.noFood = true;
-        } else if (game.map[nextx][nexty] == 0) {
-          game.map[nextx][nexty] = 1;
-          game.snakeHeadLocation = { x: nextx, y: nexty };
-          game.snakeLocationArray.unshift({ x: nextx, y: nexty });
-          const tail = game.snakeLocationArray.pop();
-          game.map[tail.x][tail.y] = 0;
-        } else {
-          console.log("collison Game Over");
-          console.log(this.map);
-        }
-      } else {
-        console.log("Out of bounds Game Over !");
-      }
-    }
   }
   moveSnake() {
     let dx = 0,
@@ -177,43 +133,64 @@ class Game {
     }
 
     if (dx !== 0 || dy !== 0) {
-      const headx = game.snakeHeadLocation.x;
-      const heady = game.snakeHeadLocation.y;
+      const headx = this.snakeHeadLocation.x;
+      const heady = this.snakeHeadLocation.y;
       const nextx = headx + dx;
       const nexty = heady + dy;
 
       if (nextx >= 0 && nextx < MapSize && nexty >= 0 && nexty < MapSize) {
-        if (game.map[nextx][nexty] == -1) {
-          game.map[nextx][nexty] = 1;
-          game.snakeHeadLocation = { x: nextx, y: nexty };
-          game.snakeLocationArray.unshift({ x: nextx, y: nexty });
-          game.noFood = true;
-        } else if (game.map[nextx][nexty] == 0) {
-          game.map[nextx][nexty] = 1;
-          game.snakeHeadLocation = { x: nextx, y: nexty };
-          game.snakeLocationArray.unshift({ x: nextx, y: nexty });
-          const tail = game.snakeLocationArray.pop();
-          game.map[tail.x][tail.y] = 0;
+        if (this.map[nextx][nexty] == -1) {
+          this.map[nextx][nexty] = 1;
+          this.snakeHeadLocation = { x: nextx, y: nexty };
+          this.snakeLocationArray.unshift({ x: nextx, y: nexty });
+          this.noFood = true;
+          this.score++;
+        } else if (this.map[nextx][nexty] == 0) {
+          this.map[nextx][nexty] = 1;
+          this.snakeHeadLocation = { x: nextx, y: nexty };
+          this.snakeLocationArray.unshift({ x: nextx, y: nexty });
+          const tail = this.snakeLocationArray.pop();
+          this.map[tail.x][tail.y] = 0;
         } else {
           console.log("collison Game Over");
-          console.log(this.map);
+          this.highScore = this.score;
+          this.playing = false;
         }
       } else {
+        this.highScore = this.score;
         console.log("Out of bounds Game Over !");
+        this.playing = false;
       }
     }
   }
+  drawScores() {
+    this.ctx.fillStyle = "#d0d0d0";
+    this.ctx.font = `${0.5 * gridSize}px serif`;
+    this.ctx.fillText(`Score : ${this.score}`, gridSize, gridSize);
+    this.ctx.fillText(
+      `High Score : ${this.highScore}`,
+      16 * gridSize,
+      gridSize,
+      4 * gridSize
+    );
+  }
 }
 const game = new Game(ctx);
-game.generateSnake();
 function animate() {
-  game.clearMap();
-  game.moveSnake();
-  game.drawGrid();
-  game.drawFood();
-  game.drawSnake();
-  if (game.noFood) {
-    game.generateFood();
+  if (game.playing) {
+    game.clearMap();
+    if (!game.snakeGenerated) {
+      game.generateSnake();
+      game.snakeGenerated = true;
+    }
+    game.moveSnake();
+    game.drawFood();
+    game.drawSnake();
+    game.drawScores();
+
+    if (game.noFood) {
+      game.generateFood();
+    }
   }
 }
 
@@ -247,5 +224,52 @@ window.addEventListener("keyup", (e) => {
     game.keys.a.pressed = false;
   } else if (e.key == "d") {
     game.keys.d.pressed = false;
+  }
+});
+window.addEventListener("keydown", (e) => {
+  if (e.key == " ") {
+    game.playing = true;
+  }
+});
+
+window.addEventListener(
+  "touchmove",
+  (e) => {
+    e.preventDefault(); // Prevent scrolling on touchmove
+  },
+  { passive: false }
+);
+
+window.addEventListener("touchstart", () => {
+  game.playing = true;
+});
+
+let touchstartX = 0;
+let touchstartY = 0;
+window.addEventListener("touchstart", (e) => {
+  const touch = e.touches[0];
+  touchstartX = touch.clientX;
+  touchstartY = touch.clientY;
+});
+window.addEventListener("touchend", (e) => {
+  const touch = e.changedTouches[0];
+  const touchendX = touch.clientX;
+  const touchendY = touch.clientY;
+
+  const dx = touchendX - touchstartX;
+  const dy = touchendY - touchstartY;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 0) {
+      game.lastKey = "d";
+    } else {
+      game.lastKey = "a";
+    }
+  } else {
+    if (dy > 0) {
+      game.lastKey = "s";
+    } else {
+      game.lastKey = "w";
+    }
   }
 });
